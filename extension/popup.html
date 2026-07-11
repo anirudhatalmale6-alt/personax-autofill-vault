@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body{ width:300px; margin:0; font-family:-apple-system,Segoe UI,Roboto,sans-serif; background:#131a2a; color:#e7ecf6; }
+  .h{ padding:12px 14px; border-bottom:1px solid #26304a; font-weight:700; font-size:14px; }
+  .b{ padding:14px; }
+  label{ display:block; font-size:11px; color:#8ea0c0; margin:10px 0 4px; }
+  input{ width:100%; box-sizing:border-box; padding:8px 10px; background:#0e1526; border:1px solid #26304a; border-radius:7px; color:#e7ecf6; font-size:13px; }
+  .pid{ font-family:ui-monospace,Menlo,monospace; font-weight:700; letter-spacing:.04em; }
+  button{ width:100%; margin-top:14px; padding:9px; border:0; border-radius:7px; background:#4f8cff; color:#fff; font-weight:600; font-size:13px; cursor:pointer; }
+  .st{ font-size:11px; margin-top:8px; min-height:14px; }
+  .ok{ color:#2fd18a; } .err{ color:#ff5c6c; }
+  .hint{ font-size:11px; color:#6d7e9e; margin-top:12px; line-height:1.5; border-top:1px solid #26304a; padding-top:10px; }
+  kbd{ background:#0e1526; border:1px solid #33406a; border-radius:4px; padding:1px 5px; font-family:ui-monospace,monospace; font-size:11px; }
+</style>
+</head>
+<body>
+  <div class="h">🔐 PersonaX Autofill</div>
+  <div class="b">
+    <label>This profile's ID</label>
+    <input id="profileId" class="pid" placeholder="AAA0001" autocomplete="off">
+    <label>Vault server URL</label>
+    <input id="serverUrl" placeholder="http://127.0.0.1:4600" autocomplete="off">
+    <label>Vault key</label>
+    <input id="vaultKey" type="password" placeholder="secret vault key" autocomplete="off">
+    <button id="save">Save</button>
+    <button id="test" style="background:#243050;margin-top:8px">Test this profile</button>
+    <div id="st" class="st"></div>
+    <div class="hint">Set the Profile ID once for this PersonaX profile — it's remembered. Then on any signup/signin page press <kbd>Alt</kbd>+<kbd>X</kbd> to autofill.</div>
+  </div>
+<script src="popup.js"></script>
+</body>
+</html>

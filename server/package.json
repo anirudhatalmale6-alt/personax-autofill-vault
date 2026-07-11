@@ -1,0 +1,13 @@
+{
+  "name": "personax-autofill-vault",
+  "version": "1.0.0",
+  "description": "Profile-keyed credential vault + autofill API for PersonaX profiles",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "express": "^4.19.2"
+  }
+}

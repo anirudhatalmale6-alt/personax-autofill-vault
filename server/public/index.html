@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PersonaX Autofill Vault</title>
+<style>
+  :root{ --bg:#0f1420; --card:#182034; --line:#26304a; --ink:#e7ecf6; --mut:#8ea0c0; --acc:#4f8cff; --acc2:#2fd18a; --danger:#ff5c6c; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  header{ padding:18px 22px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1{ font-size:18px; margin:0; }
+  header .tag{ font-size:12px; color:var(--mut); }
+  .wrap{ max-width:1100px; margin:0 auto; padding:22px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:18px; }
+  .card h2{ margin:0 0 14px; font-size:15px; }
+  label{ display:block; font-size:12px; color:var(--mut); margin:0 0 4px; }
+  input,select,textarea{ width:100%; padding:9px 11px; background:#0e1526; border:1px solid var(--line); border-radius:8px; color:var(--ink); font-size:14px; }
+  textarea{ min-height:96px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; }
+  .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .grid .full{ grid-column:1/-1; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button{ cursor:pointer; border:0; border-radius:8px; padding:9px 16px; font-size:14px; font-weight:600; color:#fff; background:var(--acc); }
+  button.ghost{ background:transparent; border:1px solid var(--line); color:var(--ink); }
+  button.green{ background:var(--acc2); color:#04231a; }
+  button.small{ padding:5px 10px; font-size:12px; }
+  button.del{ background:transparent; border:1px solid #40263a; color:var(--danger); }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th,td{ text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); }
+  th{ color:var(--mut); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+  tr:hover td{ background:#141c30; }
+  .pid{ font-family:ui-monospace,Menlo,monospace; font-weight:700; color:var(--acc); }
+  .muted{ color:var(--mut); }
+  .note{ font-size:12px; color:var(--mut); margin-top:8px; line-height:1.5; }
+  .ok{ color:var(--acc2); } .err{ color:var(--danger); }
+  .lock{ max-width:420px; margin:60px auto; }
+  .hidden{ display:none; }
+  #msg{ font-size:13px; min-height:18px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔐 PersonaX Autofill Vault</h1>
+  <span class="tag">store account info per profile · served to the Alt+X extension</span>
+</header>
+
+<!-- key gate -->
+<div id="gate" class="lock card">
+  <h2>Enter vault key</h2>
+  <label>Vault key</label>
+  <input id="keyInput" type="password" placeholder="your secret vault key" autocomplete="off">
+  <div style="height:12px"></div>
+  <button onclick="unlock()">Unlock</button>
+  <div id="gateMsg" class="note"></div>
+</div>
+
+<div id="app" class="wrap hidden">
+
+  <div class="card">
+    <h2>Add / edit a profile</h2>
+    <div class="grid">
+      <div><label>Profile ID (e.g. AAA0001)</label><input id="f_profile_id" placeholder="AAA0001"></div>
+      <div><label>First name</label><input id="f_first_name"></div>
+      <div><label>Last name</label><input id="f_last_name"></div>
+      <div><label>Email / username</label><input id="f_email"></div>
+      <div><label>Password</label><input id="f_password"></div>
+      <div><label>Country</label><input id="f_country" placeholder="Philippines"></div>
+      <div><label>Recovery email</label><input id="f_recovery_email"></div>
+      <div><label>Phone</label><input id="f_phone"></div>
+      <div><label>DOB day / month / year</label>
+        <div class="row">
+          <input id="f_dob_day" placeholder="DD" style="width:70px">
+          <input id="f_dob_month" placeholder="MM" style="width:70px">
+          <input id="f_dob_year" placeholder="YYYY" style="width:90px">
+        </div>
+      </div>
+      <div class="full"><label>Notes (anything extra)</label><input id="f_notes"></div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="row">
+      <button class="green" onclick="saveProfile()">Save profile</button>
+      <button class="ghost" onclick="clearForm()">Clear</button>
+      <span id="msg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Bulk import</h2>
+    <p class="note">Paste rows as CSV. First line is the header. Column names must match: profile_id, first_name, last_name, email, password, recovery_email, phone, dob_day, dob_month, dob_year, country, notes. Only profile_id is required; leave others blank if you don't have them.</p>
+    <textarea id="csv" placeholder="profile_id,first_name,last_name,email,password,country
+AAA0001,Juan,Dela Cruz,juan.delacruz88@outlook.com,P@ssw0rd1,Philippines
+AAA0002,Maria,Santos,maria.santos21@outlook.com,P@ssw0rd2,Philippines"></textarea>
+    <div style="height:10px"></div>
+    <button onclick="importCsv()">Import</button>
+    <span id="impMsg" class="note"></span>
+  </div>
+
+  <div class="card">
+    <h2>Stored profiles (<span id="count">0</span>)</h2>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Profile ID</th><th>Name</th><th>Email</th><th>Updated</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const FIELDS = ['profile_id','first_name','last_name','email','password','recovery_email','phone','dob_day','dob_month','dob_year','country','notes'];
+let KEY = '';
+
+async function api(pathname, opts={}){
+  opts.headers = Object.assign({ 'x-vault-key': KEY, 'content-type':'application/json' }, opts.headers||{});
+  const r = await fetch(pathname, opts);
+  if (r.status === 401) throw new Error('Wrong vault key');
+  return r;
+}
+
+function unlock(){
+  KEY = document.getElementById('keyInput').value.trim();
+  if(!KEY){ document.getElementById('gateMsg').textContent='Enter your key.'; return; }
+  api('/api/profiles').then(r=>{
+    if(!r.ok) throw new Error('Wrong vault key');
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    loadRows();
+  }).catch(e=>{ document.getElementById('gateMsg').innerHTML='<span class="err">'+e.message+'</span>'; });
+}
+
+function val(id){ return document.getElementById(id).value.trim(); }
+function set(id,v){ document.getElementById(id).value = v || ''; }
+
+function clearForm(){ FIELDS.forEach(f=>set('f_'+f,'')); document.getElementById('msg').textContent=''; }
+
+async function saveProfile(){
+  const body = { _now: Date.now() };
+  FIELDS.forEach(f=> body[f] = val('f_'+f));
+  if(!body.profile_id){ document.getElementById('msg').innerHTML='<span class="err">Profile ID is required</span>'; return; }
+  const r = await api('/api/profile', { method:'POST', body: JSON.stringify(body) });
+  const j = await r.json();
+  if(j.ok){ document.getElementById('msg').innerHTML='<span class="ok">Saved '+j.profile_id+'</span>'; loadRows(); }
+  else document.getElementById('msg').innerHTML='<span class="err">'+(j.error||'error')+'</span>';
+}
+
+function parseCsv(text){
+  const lines = text.trim().split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length < 2) return [];
+  const head = lines[0].split(',').map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const cells = line.split(',');
+    const o = {};
+    head.forEach((h,i)=> o[h] = (cells[i]||'').trim());
+    return o;
+  });
+}
+
+async function importCsv(){
+  const rows = parseCsv(document.getElementById('csv').value);
+  if(!rows.length){ document.getElementById('impMsg').innerHTML='<span class="err">Need a header line + at least one row</span>'; return; }
+  const r = await api('/api/import', { method:'POST', body: JSON.stringify({ rows, _now: Date.now() }) });
+  const j = await r.json();
+  document.getElementById('impMsg').innerHTML = j.ok ? '<span class="ok">Imported '+j.imported+' profiles</span>' : '<span class="err">'+(j.error||'error')+'</span>';
+  loadRows();
+}
+
+async function loadRows(){
+  const r = await api('/api/profiles'); const j = await r.json();
+  const tb = document.getElementById('rows'); tb.innerHTML='';
+  document.getElementById('count').textContent = j.profiles.length;
+  j.profiles.forEach(p=>{
+    const tr = document.createElement('tr');
+    const name = [p.first_name,p.last_name].filter(Boolean).join(' ') || '<span class="muted">—</span>';
+    const when = p.updated_at ? new Date(p.updated_at).toLocaleString() : '<span class="muted">—</span>';
+    tr.innerHTML = '<td class="pid">'+p.profile_id+'</td><td>'+name+'</td><td>'+(p.email||'<span class="muted">—</span>')+'</td><td class="muted">'+when+'</td>'+
+      '<td class="row"><button class="ghost small" data-e="'+p.profile_id+'">Edit</button> <button class="del small" data-d="'+p.profile_id+'">Delete</button></td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('[data-e]').forEach(b=> b.onclick=()=>editProfile(b.getAttribute('data-e')));
+  tb.querySelectorAll('[data-d]').forEach(b=> b.onclick=()=>delProfile(b.getAttribute('data-d')));
+}
+
+async function editProfile(id){
+  const r = await api('/api/profile/'+encodeURIComponent(id)); const j = await r.json();
+  if(j.profile){ FIELDS.forEach(f=> set('f_'+f, j.profile[f])); window.scrollTo({top:0,behavior:'smooth'}); }
+}
+async function delProfile(id){
+  if(!confirm('Delete '+id+'?')) return;
+  await api('/api/profile/'+encodeURIComponent(id), { method:'DELETE' });
+  loadRows();
+}
+document.getElementById('keyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') unlock(); });
+</script>
+</body>
+</html>
