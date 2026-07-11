@@ -54,13 +54,17 @@
     if (el.type === 'password') return 'password';
     const ac = (el.getAttribute('autocomplete') || '').toLowerCase();
     if (AUTOCOMPLETE[ac]) return AUTOCOMPLETE[ac];
-    if (el.type === 'email') return 'email';
-    if (el.type === 'tel') return 'phone';
 
     const hay = [el.name, el.id, el.getAttribute('placeholder'), el.getAttribute('aria-label'),
                  el.getAttribute('data-testid'), labelTextFor(el)].filter(Boolean).join(' ');
-    // recovery must win over plain email
-    for (const key of ['recovery_email','first_name','last_name','dob_day','dob_month','dob_year','country','phone','email']) {
+    // a recovery / secondary email must be recognised BEFORE the generic type=email rule,
+    // otherwise a field named "recoveryEmail" gets treated as the primary email.
+    if (RULES.recovery_email.some(rx => rx.test(hay))) return 'recovery_email';
+
+    if (el.type === 'email') return 'email';
+    if (el.type === 'tel') return 'phone';
+
+    for (const key of ['first_name','last_name','dob_day','dob_month','dob_year','country','phone','email']) {
       if (RULES[key] && RULES[key].some(rx => rx.test(hay))) return key;
     }
     return null;

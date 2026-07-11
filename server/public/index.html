@@ -11,6 +11,7 @@
   header{ padding:18px 22px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   header h1{ font-size:18px; margin:0; }
   header .tag{ font-size:12px; color:var(--mut); }
+  header .out{ margin-left:auto; }
   .wrap{ max-width:1100px; margin:0 auto; padding:22px; }
   .card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:18px; }
   .card h2{ margin:0 0 14px; font-size:15px; }
@@ -30,34 +31,58 @@
   th{ color:var(--mut); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
   tr:hover td{ background:#141c30; }
   .pid{ font-family:ui-monospace,Menlo,monospace; font-weight:700; color:var(--acc); }
+  .mono{ font-family:ui-monospace,Menlo,monospace; font-size:12.5px; }
   .muted{ color:var(--mut); }
   .note{ font-size:12px; color:var(--mut); margin-top:8px; line-height:1.5; }
   .ok{ color:var(--acc2); } .err{ color:var(--danger); }
   .lock{ max-width:420px; margin:60px auto; }
   .hidden{ display:none; }
-  #msg{ font-size:13px; min-height:18px; }
+  #msg,#bulkMsg{ font-size:13px; min-height:18px; }
 </style>
 </head>
 <body>
 <header>
   <h1>🔐 PersonaX Autofill Vault</h1>
   <span class="tag">store account info per profile · served to the Alt+X extension</span>
+  <button id="logoutBtn" class="ghost small out hidden" onclick="logout()">Log out</button>
 </header>
 
-<!-- key gate -->
+<!-- login gate -->
 <div id="gate" class="lock card">
-  <h2>Enter vault key</h2>
-  <label>Vault key</label>
-  <input id="keyInput" type="password" placeholder="your secret vault key" autocomplete="off">
+  <h2>Log in</h2>
+  <label>Username</label>
+  <input id="userInput" autocomplete="username" placeholder="username">
+  <div style="height:10px"></div>
+  <label>Password</label>
+  <input id="passInput" type="password" autocomplete="current-password" placeholder="password">
   <div style="height:12px"></div>
-  <button onclick="unlock()">Unlock</button>
+  <button onclick="login()">Log in</button>
   <div id="gateMsg" class="note"></div>
 </div>
 
 <div id="app" class="wrap hidden">
 
   <div class="card">
-    <h2>Add / edit a profile</h2>
+    <h2>Bulk create profiles</h2>
+    <p class="note">Give a starting profile ID and how many to generate. It creates the next IDs in sequence
+      (e.g. base <b>AAA0001</b> + 20 → <b>AAA0002 … AAA0021</b>), each with a random first name, last name,
+      birth date, password and an Outlook-style email. Recovery email and phone are left blank on purpose.
+      Existing IDs are never overwritten — they're skipped.</p>
+    <div class="grid">
+      <div><label>Starting profile ID</label><input id="b_base" placeholder="AAA0001"></div>
+      <div><label>How many to create</label><input id="b_count" type="number" min="1" max="200" value="20"></div>
+      <div><label>Country</label><input id="b_country" placeholder="Philippines" value="Philippines"></div>
+    </div>
+    <div style="height:14px"></div>
+    <div class="row">
+      <button class="green" onclick="bulkCreate()">Generate</button>
+      <span id="bulkMsg"></span>
+    </div>
+    <div id="bulkResult" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Add / edit a single profile</h2>
     <div class="grid">
       <div><label>Profile ID (e.g. AAA0001)</label><input id="f_profile_id" placeholder="AAA0001"></div>
       <div><label>First name</label><input id="f_first_name"></div>
@@ -70,7 +95,7 @@
       <div><label>DOB day / month / year</label>
         <div class="row">
           <input id="f_dob_day" placeholder="DD" style="width:70px">
-          <input id="f_dob_month" placeholder="MM" style="width:70px">
+          <input id="f_dob_month" placeholder="Month" style="width:90px">
           <input id="f_dob_year" placeholder="YYYY" style="width:90px">
         </div>
       </div>
@@ -85,11 +110,10 @@
   </div>
 
   <div class="card">
-    <h2>Bulk import</h2>
-    <p class="note">Paste rows as CSV. First line is the header. Column names must match: profile_id, first_name, last_name, email, password, recovery_email, phone, dob_day, dob_month, dob_year, country, notes. Only profile_id is required; leave others blank if you don't have them.</p>
+    <h2>Bulk import (CSV)</h2>
+    <p class="note">Paste rows as CSV. First line is the header. Column names must match: profile_id, first_name, last_name, email, password, recovery_email, phone, dob_day, dob_month, dob_year, country, notes. Only profile_id is required.</p>
     <textarea id="csv" placeholder="profile_id,first_name,last_name,email,password,country
-AAA0001,Juan,Dela Cruz,juan.delacruz88@outlook.com,P@ssw0rd1,Philippines
-AAA0002,Maria,Santos,maria.santos21@outlook.com,P@ssw0rd2,Philippines"></textarea>
+AAA0001,Juan,Dela Cruz,juan.delacruz88@outlook.com,P@ssw0rd1,Philippines"></textarea>
     <div style="height:10px"></div>
     <button onclick="importCsv()">Import</button>
     <span id="impMsg" class="note"></span>
@@ -109,28 +133,38 @@ AAA0002,Maria,Santos,maria.santos21@outlook.com,P@ssw0rd2,Philippines"></textare
 
 <script>
 const FIELDS = ['profile_id','first_name','last_name','email','password','recovery_email','phone','dob_day','dob_month','dob_year','country','notes'];
+// API is path-relative so this works whether served at "/" or under "/outlook/".
+const BASE = location.pathname.replace(/[^/]*$/, '');
 let KEY = '';
 
 async function api(pathname, opts={}){
   opts.headers = Object.assign({ 'x-vault-key': KEY, 'content-type':'application/json' }, opts.headers||{});
-  const r = await fetch(pathname, opts);
-  if (r.status === 401) throw new Error('Wrong vault key');
+  const r = await fetch(BASE + pathname, opts);
+  if (r.status === 401) throw new Error('Session expired — log in again');
   return r;
 }
 
-function unlock(){
-  KEY = document.getElementById('keyInput').value.trim();
-  if(!KEY){ document.getElementById('gateMsg').textContent='Enter your key.'; return; }
-  api('/api/profiles').then(r=>{
-    if(!r.ok) throw new Error('Wrong vault key');
+async function login(){
+  const user = document.getElementById('userInput').value.trim();
+  const pass = document.getElementById('passInput').value;
+  if(!user || !pass){ document.getElementById('gateMsg').textContent='Enter username and password.'; return; }
+  try{
+    const r = await fetch(BASE + 'login', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ user, pass }) });
+    if(!r.ok) throw new Error('Wrong username or password');
+    const j = await r.json();
+    KEY = j.vaultKey;
     document.getElementById('gate').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
     loadRows();
-  }).catch(e=>{ document.getElementById('gateMsg').innerHTML='<span class="err">'+e.message+'</span>'; });
+  }catch(e){ document.getElementById('gateMsg').innerHTML='<span class="err">'+e.message+'</span>'; }
 }
+
+function logout(){ location.reload(); }
 
 function val(id){ return document.getElementById(id).value.trim(); }
 function set(id,v){ document.getElementById(id).value = v || ''; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 function clearForm(){ FIELDS.forEach(f=>set('f_'+f,'')); document.getElementById('msg').textContent=''; }
 
@@ -138,10 +172,33 @@ async function saveProfile(){
   const body = { _now: Date.now() };
   FIELDS.forEach(f=> body[f] = val('f_'+f));
   if(!body.profile_id){ document.getElementById('msg').innerHTML='<span class="err">Profile ID is required</span>'; return; }
-  const r = await api('/api/profile', { method:'POST', body: JSON.stringify(body) });
+  const r = await api('api/profile', { method:'POST', body: JSON.stringify(body) });
   const j = await r.json();
   if(j.ok){ document.getElementById('msg').innerHTML='<span class="ok">Saved '+j.profile_id+'</span>'; loadRows(); }
   else document.getElementById('msg').innerHTML='<span class="err">'+(j.error||'error')+'</span>';
+}
+
+async function bulkCreate(){
+  const base_id = val('b_base');
+  const count = parseInt(val('b_count'),10);
+  const country = val('b_country') || 'Philippines';
+  const mEl = document.getElementById('bulkMsg');
+  const rEl = document.getElementById('bulkResult');
+  if(!base_id){ mEl.innerHTML='<span class="err">Enter a starting profile ID</span>'; return; }
+  if(!(count>=1)){ mEl.innerHTML='<span class="err">Enter how many to create</span>'; return; }
+  mEl.textContent='Generating…'; rEl.innerHTML='';
+  const r = await api('api/bulk-create', { method:'POST', body: JSON.stringify({ base_id, count, country, _now: Date.now() }) });
+  const j = await r.json();
+  if(!j.ok){ mEl.innerHTML='<span class="err">'+(j.error||'error')+'</span>'; return; }
+  const rangeTxt = j.range ? (' ('+j.range[0]+' – '+j.range[1]+')') : '';
+  mEl.innerHTML='<span class="ok">Created '+j.created.length+rangeTxt+(j.skipped.length?(' · skipped '+j.skipped.length+' existing'):'')+'</span>';
+  if(j.created.length){
+    let html='<div style="overflow-x:auto"><table><thead><tr><th>Profile ID</th><th>Name</th><th>Email</th><th>Password</th></tr></thead><tbody>';
+    j.created.forEach(c=>{ html+='<tr><td class="pid">'+esc(c.profile_id)+'</td><td>'+esc(c.first_name+' '+c.last_name)+'</td><td class="mono">'+esc(c.email)+'</td><td class="mono">'+esc(c.password)+'</td></tr>'; });
+    html+='</tbody></table></div><p class="note">These are the generated logins. The extension fills them into the Outlook signup for each matching profile on Alt+X.</p>';
+    rEl.innerHTML=html;
+  }
+  loadRows();
 }
 
 function parseCsv(text){
@@ -159,22 +216,22 @@ function parseCsv(text){
 async function importCsv(){
   const rows = parseCsv(document.getElementById('csv').value);
   if(!rows.length){ document.getElementById('impMsg').innerHTML='<span class="err">Need a header line + at least one row</span>'; return; }
-  const r = await api('/api/import', { method:'POST', body: JSON.stringify({ rows, _now: Date.now() }) });
+  const r = await api('api/import', { method:'POST', body: JSON.stringify({ rows, _now: Date.now() }) });
   const j = await r.json();
   document.getElementById('impMsg').innerHTML = j.ok ? '<span class="ok">Imported '+j.imported+' profiles</span>' : '<span class="err">'+(j.error||'error')+'</span>';
   loadRows();
 }
 
 async function loadRows(){
-  const r = await api('/api/profiles'); const j = await r.json();
+  const r = await api('api/profiles'); const j = await r.json();
   const tb = document.getElementById('rows'); tb.innerHTML='';
   document.getElementById('count').textContent = j.profiles.length;
   j.profiles.forEach(p=>{
     const tr = document.createElement('tr');
     const name = [p.first_name,p.last_name].filter(Boolean).join(' ') || '<span class="muted">—</span>';
     const when = p.updated_at ? new Date(p.updated_at).toLocaleString() : '<span class="muted">—</span>';
-    tr.innerHTML = '<td class="pid">'+p.profile_id+'</td><td>'+name+'</td><td>'+(p.email||'<span class="muted">—</span>')+'</td><td class="muted">'+when+'</td>'+
-      '<td class="row"><button class="ghost small" data-e="'+p.profile_id+'">Edit</button> <button class="del small" data-d="'+p.profile_id+'">Delete</button></td>';
+    tr.innerHTML = '<td class="pid">'+esc(p.profile_id)+'</td><td>'+name+'</td><td>'+(esc(p.email)||'<span class="muted">—</span>')+'</td><td class="muted">'+when+'</td>'+
+      '<td class="row"><button class="ghost small" data-e="'+esc(p.profile_id)+'">Edit</button> <button class="del small" data-d="'+esc(p.profile_id)+'">Delete</button></td>';
     tb.appendChild(tr);
   });
   tb.querySelectorAll('[data-e]').forEach(b=> b.onclick=()=>editProfile(b.getAttribute('data-e')));
@@ -182,15 +239,15 @@ async function loadRows(){
 }
 
 async function editProfile(id){
-  const r = await api('/api/profile/'+encodeURIComponent(id)); const j = await r.json();
+  const r = await api('api/profile/'+encodeURIComponent(id)); const j = await r.json();
   if(j.profile){ FIELDS.forEach(f=> set('f_'+f, j.profile[f])); window.scrollTo({top:0,behavior:'smooth'}); }
 }
 async function delProfile(id){
   if(!confirm('Delete '+id+'?')) return;
-  await api('/api/profile/'+encodeURIComponent(id), { method:'DELETE' });
+  await api('api/profile/'+encodeURIComponent(id), { method:'DELETE' });
   loadRows();
 }
-document.getElementById('keyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') unlock(); });
+document.getElementById('passInput').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); });
 </script>
 </body>
 </html>

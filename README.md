@@ -6,18 +6,23 @@ signup / sign-in page to autofill the whole form for that profile.
 Two parts:
 
 ## 1. Vault server (`/server`)
-A small Node + SQLite service with a web admin page.
+A small Node + SQLite service with a web admin page (protected by a username/password login).
 - Add/edit each profile keyed by its PersonaX profile ID (e.g. `AAA0001`).
 - Fields: first name, last name, email/username, password, recovery email, phone,
   birth day/month/year, country, notes.
+- **Bulk create**: give a starting ID (e.g. `AAA0001`) and a count, and it generates the next
+  IDs in sequence (`AAA0002 … AAA00xx`), each with a random first name, last name, birth date,
+  password and an Outlook-style email. Recovery email and phone are left blank on purpose.
+  IDs that already exist are skipped (never overwritten).
 - Bulk import by pasting CSV.
-- Every API call requires your secret **vault key** (`x-vault-key` header).
+- The human admin logs in with `ADMIN_USER` / `ADMIN_PASS`; the extension talks to the API
+  directly with the secret **vault key** (`x-vault-key` header).
 
 Run:
 ```bash
 cd server
 npm install
-VAULT_KEY=your-secret-key PORT=4600 npm start
+VAULT_KEY=your-secret-key ADMIN_USER=admin ADMIN_PASS=your-password PORT=4600 npm start
 # admin page: http://127.0.0.1:4600
 ```
 
