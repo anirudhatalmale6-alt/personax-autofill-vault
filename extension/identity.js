@@ -53,8 +53,21 @@ function pxStrongPassword() {
   return p;
 }
 
+// A stable, PersonaX-style profile code, e.g. "AAAA0005" (4 letters + 4 digits).
+// Used for this profile's home URL personax.work/profile/<code>.
+function pxProfileCode() {
+  const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let s = "";
+  for (let i = 0; i < 4; i++) s += A[pxRand(A.length)];
+  for (let i = 0; i < 4; i++) s += String(pxRand(10));
+  return s;
+}
+
 function pxGenerateIdentity() {
-  const first = pxPick(PX_FIRST_NAMES);
+  // First 50 names in the pool are male, next 50 female - keep gender consistent.
+  const fi = pxRand(PX_FIRST_NAMES.length);
+  const first = PX_FIRST_NAMES[fi];
+  const gender = fi < 50 ? "Male" : "Female";
   const last = pxPick(PX_LAST_NAMES);
 
   const nick = (first + last).toLowerCase().replace(/[^a-z]/g, "");
@@ -79,7 +92,7 @@ function pxGenerateIdentity() {
     dob_month: String(monthNum),            // "1".."12"
     dob_month_name: PX_MONTH_NAMES[monthNum - 1],
     dob_year: String(year),
-    gender: pxPick(["Male", "Female"]),
+    gender: gender,
     country: "United States"
   };
 }
@@ -87,5 +100,6 @@ function pxGenerateIdentity() {
 // exported for the service worker (importScripts) and available as globals in tests
 if (typeof self !== "undefined") {
   self.pxGenerateIdentity = pxGenerateIdentity;
+  self.pxProfileCode = pxProfileCode;
   self.PX_MONTH_NAMES = PX_MONTH_NAMES;
 }

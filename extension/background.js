@@ -20,25 +20,43 @@ async function getIdentity() {
 async function regenerateIdentity() {
   const id = pxGenerateIdentity();
   await chrome.storage.local.set({ [KEY]: id });
+  // let any open profile-home page repaint with the new identity
+  try {
+    const tabs = await chrome.tabs.query({ url: "*://*.personax.work/profile/*" });
+    for (const t of tabs) if (t.id != null) chrome.tabs.sendMessage(t.id, { type: "IDENTITY_CHANGED" });
+  } catch (e) {}
   return id;
 }
 
-// Open the Outlook signup page (in English) so the profile lands ready to test
-// with nothing to configure. Won't stack duplicates if one is already open.
-const SIGNUP_URL = "https://signup.live.com/signup?mkt=en-US&lic=1";
-function openSignup() {
+// Each profile gets a stable PersonaX-style code (e.g. AAAA0005) used for its
+// home URL personax.work/profile/<code>. Generated once, then reused.
+const CODE_KEY = "px_profile_code";
+async function getProfileCode() {
+  const data = await chrome.storage.local.get(CODE_KEY);
+  if (data[CODE_KEY]) return data[CODE_KEY];
+  const code = pxProfileCode();
+  await chrome.storage.local.set({ [CODE_KEY]: code });
+  return code;
+}
+
+// On profile launch, open THIS profile's home page on personax.work (branded,
+// shows the identity, with a button to the Outlook signup) - not raw outlook.com.
+// Nothing to configure per profile. Won't stack duplicates.
+const PROFILE_BASE = "https://personax.work/profile/";
+async function openProfileHome() {
   try {
-    chrome.tabs.query({}, (tabs) => {
-      const has = (tabs || []).some((t) => t.url && t.url.indexOf("signup.live.com") !== -1);
-      if (!has) chrome.tabs.create({ url: SIGNUP_URL });
-    });
+    const code = await getProfileCode();
+    const url = PROFILE_BASE + code;
+    const tabs = await chrome.tabs.query({});
+    const has = (tabs || []).some((t) => t.url && t.url.indexOf("personax.work/profile/") !== -1);
+    if (!has) chrome.tabs.create({ url });
   } catch (e) {}
 }
 
-// Make sure an identity exists as soon as the profile launches, so the popup and
-// the first Alt+X both see the same data.
-chrome.runtime.onInstalled.addListener(() => { getIdentity(); openSignup(); });
-chrome.runtime.onStartup.addListener(() => { getIdentity(); openSignup(); });
+// Make sure an identity + code exist as soon as the profile launches, so the
+// home page, the popup and the first Alt+X all see the same data.
+chrome.runtime.onInstalled.addListener(() => { getIdentity(); getProfileCode(); openProfileHome(); });
+chrome.runtime.onStartup.addListener(() => { getIdentity(); getProfileCode(); openProfileHome(); });
 
 // Alt+X -> tell the active tab to autofill.
 chrome.commands.onCommand.addListener(async (command) => {
@@ -55,6 +73,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === "REGENERATE") {
     regenerateIdentity().then((id) => sendResponse({ identity: id }));
+    return true;
+  }
+  if (msg.type === "GET_PROFILE_CODE") {
+    getProfileCode().then((code) => sendResponse({ code: code }));
     return true;
   }
 });

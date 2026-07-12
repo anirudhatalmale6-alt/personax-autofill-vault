@@ -266,6 +266,28 @@
     } finally { running = false; }
   }
 
+  // ---------- PersonaX profile-home page (personax.work/profile/<code>) ----------
+  // That page is a branded shell; the extension fills in THIS profile's identity
+  // so the user sees their details and a button to the Outlook signup.
+  async function fillProfileHome() {
+    const id = await getIdentity();
+    if (!id) return;
+    const set = (sel, val) => { const el = document.querySelector(sel); if (el && val != null) el.textContent = val; };
+    set("#px-name", id.full_name);
+    set("#px-email", id.email);
+    set("#px-user", id.username);
+    set("#px-pass", id.password);
+    set("#px-born", id.dob_month_name + " " + id.dob_day + ", " + id.dob_year);
+    set("#px-country", id.country);
+    document.documentElement.setAttribute("data-px-ext", "1");
+  }
+  if (/(^|\.)personax\.work$/i.test(location.hostname) && /^\/profile(\/|$)/i.test(location.pathname)) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fillProfileHome);
+    else fillProfileHome();
+    // repaint if the user hits "New identity" while on this page
+    chrome.runtime.onMessage.addListener((m) => { if (m && m.type === "IDENTITY_CHANGED") fillProfileHome(); });
+  }
+
   // ---------- triggers ----------
   // The form is NEVER filled automatically. It only fills when you press Alt+X
   // (or use "Autofill now" in the popup, which sends AUTOFILL_NOW).

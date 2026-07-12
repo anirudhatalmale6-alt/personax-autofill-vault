@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PersonaX Profile</title>
+<style>
+  :root{
+    --bg:#0b0b12; --card:#14141f; --card2:#1b1b2a; --line:#2a2a3d;
+    --txt:#e9e9f2; --muted:#9a9ab0; --accent:#8b5cf6; --accent2:#22d3ee; --ok:#4ade80;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#1a1330 0%,var(--bg) 55%);
+       color:var(--txt);font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+       min-height:100vh;display:flex;justify-content:center;padding:34px 16px}
+  .wrap{width:100%;max-width:560px}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+  .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+        display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(139,92,246,.4)}
+  .logo svg{width:24px;height:24px}
+  .brand h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px}
+  .brand .sub{font-size:12px;color:var(--muted);margin-top:1px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .card .head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;
+        background:linear-gradient(180deg,rgba(139,92,246,.10),transparent)}
+  .card .head .pid{font-weight:700;font-size:16px;letter-spacing:.6px}
+  .card .head .tag{font-size:11px;color:var(--muted);background:var(--card2);border:1px solid var(--line);
+        padding:4px 9px;border-radius:999px}
+  .row{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .k{width:118px;flex:none;color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+  .row .v{flex:1;font-weight:600;word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px}
+  .row .v.dim{color:var(--muted);font-weight:500;font-family:inherit}
+  .copy{flex:none;background:var(--card2);border:1px solid var(--line);color:var(--muted);font-size:12px;
+        padding:6px 11px;border-radius:8px;cursor:pointer;transition:.15s}
+  .copy:hover{color:var(--txt);border-color:var(--accent)}
+  .copy.done{color:var(--ok);border-color:var(--ok)}
+  .go{display:block;text-align:center;margin-top:18px;padding:15px;border-radius:14px;text-decoration:none;
+      font-weight:700;font-size:15.5px;color:#fff;background:linear-gradient(135deg,var(--accent),#6d28d9);
+      box-shadow:0 8px 26px rgba(109,40,217,.45);transition:.15s}
+  .go:hover{transform:translateY(-1px)}
+  .hint{margin-top:14px;text-align:center;color:var(--muted);font-size:13px}
+  .hint b{color:var(--txt)}
+  .kbd{display:inline-block;background:var(--card2);border:1px solid var(--line);border-bottom-width:2px;
+       border-radius:6px;padding:1px 7px;font-family:ui-monospace,monospace;font-size:12px;color:var(--txt)}
+  .note{margin-top:16px;display:none;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.35);
+        color:#fde68a;border-radius:12px;padding:12px 14px;font-size:13px}
+  :root:not([data-px-ext]) .note{display:block}
+  :root:not([data-px-ext]) .v:not(.dim){opacity:.35}
+  .foot{margin-top:22px;text-align:center;color:#6a6a82;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill="#fff"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="#fff"/></svg>
+    </div>
+    <div>
+      <h1>PersonaX</h1>
+      <div class="sub">Profile identity &middot; Outlook autofill</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head">
+      <span class="pid" id="px-id">PROFILE</span>
+      <span class="tag">this profile</span>
+    </div>
+    <div class="row"><span class="k">Name</span><span class="v" id="px-name">&mdash;</span><button class="copy" data-c="px-name">Copy</button></div>
+    <div class="row"><span class="k">Email</span><span class="v" id="px-email">&mdash;</span><button class="copy" data-c="px-email">Copy</button></div>
+    <div class="row"><span class="k">Username</span><span class="v" id="px-user">&mdash;</span><button class="copy" data-c="px-user">Copy</button></div>
+    <div class="row"><span class="k">Password</span><span class="v" id="px-pass">&mdash;</span><button class="copy" data-c="px-pass">Copy</button></div>
+    <div class="row"><span class="k">Date of birth</span><span class="v" id="px-born">&mdash;</span><button class="copy" data-c="px-born">Copy</button></div>
+    <div class="row"><span class="k">Country</span><span class="v" id="px-country">&mdash;</span><button class="copy" data-c="px-country">Copy</button></div>
+  </div>
+
+  <a class="go" id="px-go" href="https://signup.live.com/signup?mkt=en-US&lic=1" target="_blank" rel="noopener">Open Outlook signup &rarr;</a>
+  <div class="hint">On the signup page, press <span class="kbd">Alt</span> + <span class="kbd">X</span> to autofill this profile.</div>
+
+  <div class="note">Enable the <b>PersonaX Autofill</b> extension in this profile to load its identity.</div>
+
+  <div class="foot">Each PersonaX profile has its own fixed identity. It never changes on refresh.</div>
+</div>
+
+<script>
+  // Show the profile code from the URL, e.g. /profile/AAAA0005
+  (function(){
+    var seg = location.pathname.replace(/\/+$/,"").split("/").pop() || "";
+    if (seg && seg.toLowerCase() !== "profile") document.getElementById("px-id").textContent = seg.toUpperCase();
+  })();
+  // Copy buttons
+  document.querySelectorAll(".copy").forEach(function(b){
+    b.addEventListener("click", function(){
+      var el = document.getElementById(b.dataset.c);
+      var t = el ? el.textContent.trim() : "";
+      if (!t || t === "—") return;
+      navigator.clipboard.writeText(t).then(function(){
+        var old = b.textContent; b.textContent = "Copied"; b.classList.add("done");
+        setTimeout(function(){ b.textContent = old; b.classList.remove("done"); }, 1200);
+      });
+    });
+  });
+</script>
+</body>
+</html>

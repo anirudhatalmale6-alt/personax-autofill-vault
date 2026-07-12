@@ -12,7 +12,7 @@ same until you tap *New identity*.
 
 - Create 100 profiles and each one automatically has its own identity. Nothing to configure.
 - The form is left **blank** until you press **Alt+X** — nothing is typed automatically.
-- When a profile starts it opens the Outlook signup page (in English) so it's ready to test.
+- When a profile starts it opens its own **home page on personax.work/profile/<code>** (branded, shows this profile's identity, with a button to the Outlook signup) — not raw outlook.com.
 - Microsoft pages are **forced to English** (`mkt=en-US`) even behind proxies that would otherwise load Chinese/other languages.
 - The popup shows this profile's identity with copy buttons, plus a *New identity* button.
 
@@ -26,6 +26,11 @@ PersonaX / Chrome → Extensions → Developer mode → **Load unpacked** → pi
 - `content.js` — fills forms **on Alt+X only**. Robust field matching, plus special handling for Outlook's
   Fluent birth-month/day dropdowns and the birth-year input (this is what most autofillers miss).
 - `lang.js` — pins Microsoft signup pages to English before they render.
+
+## Profile home page
+`server-web/profile-home.html` is served at `personax.work/profile/<code>` (nginx `try_files … /profile/index.html`).
+Every profile gets a stable code like `AAAA0005`. The page is a branded shell; the extension injects
+that profile's identity into it and offers a button to the Outlook signup where Alt+X fills the form.
 - `popup.html` / `popup.js` — shows the profile's identity, copy buttons, *New identity*.
 
 ## Notes
