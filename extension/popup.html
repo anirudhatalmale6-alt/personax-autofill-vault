@@ -3,54 +3,61 @@
 <head>
 <meta charset="utf-8">
 <style>
-  body{ width:310px; margin:0; font-family:-apple-system,Segoe UI,Roboto,sans-serif; background:#131a2a; color:#e7ecf6; }
-  .h{ padding:12px 14px; border-bottom:1px solid #26304a; font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px; }
-  .h .id{ margin-left:auto; font-family:ui-monospace,Menlo,monospace; font-weight:800; font-size:13px; color:#6fa5ff; letter-spacing:.04em; }
-  .b{ padding:14px; }
-  label{ display:block; font-size:11px; color:#8ea0c0; margin:10px 0 4px; }
-  input{ width:100%; box-sizing:border-box; padding:8px 10px; background:#0e1526; border:1px solid #26304a; border-radius:7px; color:#e7ecf6; font-size:13px; }
-  .pid{ font-family:ui-monospace,Menlo,monospace; font-weight:700; letter-spacing:.04em; }
-  button{ width:100%; margin-top:14px; padding:9px; border:0; border-radius:7px; background:#4f8cff; color:#fff; font-weight:600; font-size:13px; cursor:pointer; }
-  .st{ font-size:11px; margin-top:8px; min-height:14px; }
-  .ok{ color:#2fd18a; } .err{ color:#ff5c6c; }
-  .hint{ font-size:11px; color:#6d7e9e; margin-top:12px; line-height:1.5; border-top:1px solid #26304a; padding-top:10px; }
-  kbd{ background:#0e1526; border:1px solid #33406a; border-radius:4px; padding:1px 5px; font-family:ui-monospace,monospace; font-size:11px; }
-
-  .acct{ margin-top:12px; border:1px solid #26304a; border-radius:10px; overflow:hidden; }
-  .acct .row{ display:flex; align-items:center; gap:8px; padding:9px 11px; border-top:1px solid #26304a; }
-  .acct .row:first-child{ border-top:0; }
-  .acct .k{ width:64px; flex:0 0 auto; font-size:10px; color:#8ea0c0; text-transform:uppercase; letter-spacing:.06em; }
-  .acct .v{ flex:1; min-width:0; font-family:ui-monospace,Menlo,monospace; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .acct .cp{ flex:0 0 auto; width:auto; margin:0; cursor:pointer; border:1px solid #2a3552; background:#1a2338; color:#8ea0c0; border-radius:6px; padding:3px 7px; font-size:10px; font-weight:400; }
-  .acct .cp:hover{ color:#fff; border-color:#4f8cff; } .acct .cp.done{ color:#2fd18a; border-color:#1f6b4a; }
-  .sec{ font-size:11px; color:#8ea0c0; margin-top:14px; padding-top:8px; border-top:1px solid #26304a; }
-  details{ margin-top:6px; } summary{ cursor:pointer; font-size:11px; color:#6fa5ff; }
+  :root{ color-scheme: dark; }
+  body{ width:320px; margin:0; font-family:-apple-system,Segoe UI,Roboto,sans-serif; background:#0f1626; color:#e7ecf6; }
+  .h{ padding:13px 15px; display:flex; align-items:center; gap:9px; border-bottom:1px solid #212c46;
+      background:linear-gradient(180deg,#141d33,#0f1626); }
+  .logo{ width:26px; height:26px; border-radius:7px; flex:0 0 auto; }
+  .h .t{ font-weight:800; font-size:15px; letter-spacing:.02em; }
+  .h .t small{ display:block; font-weight:500; font-size:10px; color:#7f90b3; letter-spacing:.04em; }
+  .b{ padding:13px 15px 15px; }
+  .lbl{ font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:#7f90b3; margin:0 0 6px; }
+  .card{ border:1px solid #212c46; border-radius:11px; overflow:hidden; background:#0c1322; }
+  .row{ display:flex; align-items:center; gap:9px; padding:9px 11px; border-top:1px solid #1a2440; }
+  .row:first-child{ border-top:0; }
+  .k{ width:58px; flex:0 0 auto; font-size:10px; color:#7f90b3; text-transform:uppercase; letter-spacing:.05em; }
+  .v{ flex:1; min-width:0; font-family:ui-monospace,Menlo,monospace; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cp{ flex:0 0 auto; cursor:pointer; border:1px solid #2a3760; background:#17203a; color:#9fb0d6; border-radius:6px; padding:3px 8px; font-size:10px; }
+  .cp:hover{ color:#fff; border-color:#4f8cff; }
+  .cp.done{ color:#2fd18a; border-color:#1f6b4a; }
+  .actions{ display:flex; gap:9px; margin-top:13px; }
+  .btn{ flex:1; padding:9px; border:0; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; }
+  .btn.primary{ background:#4f8cff; color:#fff; }
+  .btn.ghost{ background:#17203a; color:#c7d3ee; border:1px solid #2a3760; }
+  .btn:active{ transform:translateY(1px); }
+  .hint{ font-size:11px; color:#6d7e9e; margin-top:13px; line-height:1.55; }
+  kbd{ background:#0c1322; border:1px solid #33406a; border-radius:4px; padding:1px 5px; font-family:ui-monospace,monospace; font-size:11px; color:#c7d3ee; }
+  .st{ font-size:11px; margin-top:9px; min-height:14px; color:#2fd18a; }
 </style>
 </head>
 <body>
-  <div class="h"><span>🔐 PersonaX Autofill</span><span class="id" id="hid"></span></div>
+  <div class="h">
+    <svg class="logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#5b9dff"/><stop offset="1" stop-color="#7b5bff"/>
+      </linearGradient></defs>
+      <rect width="48" height="48" rx="12" fill="url(#g)"/>
+      <circle cx="24" cy="19" r="7" fill="#fff"/>
+      <path d="M11 39c1.5-8 6.8-12 13-12s11.5 4 13 12z" fill="#fff"/>
+    </svg>
+    <div class="t">PersonaX<small>Autofill · this profile</small></div>
+  </div>
   <div class="b">
-    <label>This profile's account</label>
-    <div class="acct" id="acct">
-      <div class="row"><div class="k">Profile</div><div class="v pid" id="vProfile">—</div></div>
+    <p class="lbl">This profile's identity</p>
+    <div class="card">
+      <div class="row"><div class="k">Name</div><div class="v" id="vName">—</div><button class="cp" data-c="full_name">Copy</button></div>
       <div class="row"><div class="k">Email</div><div class="v" id="vEmail">—</div><button class="cp" data-c="email">Copy</button></div>
-      <div class="row"><div class="k">Password</div><div class="v" id="vPass">—</div><button class="cp" data-c="password">Copy</button></div>
-      <div class="row" id="rRec" style="display:none"><div class="k">Recovery</div><div class="v" id="vRec">—</div><button class="cp" data-c="recovery">Copy</button></div>
+      <div class="row"><div class="k">User</div><div class="v" id="vUser">—</div><button class="cp" data-c="username">Copy</button></div>
+      <div class="row"><div class="k">Pass</div><div class="v" id="vPass">—</div><button class="cp" data-c="password">Copy</button></div>
+      <div class="row"><div class="k">Born</div><div class="v" id="vDob">—</div><button class="cp" data-c="dob">Copy</button></div>
+      <div class="row"><div class="k">Country</div><div class="v" id="vCountry">—</div><button class="cp" data-c="country">Copy</button></div>
     </div>
-    <div id="st" class="st"></div>
-
-    <details id="cfg">
-      <summary>Settings (profile ID / server / vault key)</summary>
-      <label>This profile's ID</label>
-      <input id="profileId" class="pid" placeholder="AAA0001" autocomplete="off">
-      <label>Vault server URL</label>
-      <input id="serverUrl" placeholder="https://personax.work/outlook" autocomplete="off">
-      <label>Vault key</label>
-      <input id="vaultKey" type="password" placeholder="paste vault key" autocomplete="off">
-      <button id="save">Save</button>
-    </details>
-
-    <div class="hint">The profile is detected automatically from the PersonaX startup page. On any signup/sign-in page press <kbd>Alt</kbd>+<kbd>X</kbd> to autofill.</div>
+    <div class="actions">
+      <button class="btn primary" id="fill">Autofill now</button>
+      <button class="btn ghost" id="regen">New identity</button>
+    </div>
+    <div class="st" id="st"></div>
+    <div class="hint">Nothing to set up. On any Outlook signup page press <kbd>Alt</kbd>+<kbd>X</kbd> — or it fills automatically. Every PersonaX profile has its own identity that stays the same on refresh.</div>
   </div>
 <script src="popup.js"></script>
 </body>

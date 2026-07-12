@@ -1,59 +1,59 @@
-const DEFAULTS = { serverUrl: 'https://personax.work/outlook', vaultKey: '', profileId: '' };
-const $ = (id) => document.getElementById(id);
+let CURRENT = null;
 
-let current = {};
-
-function status(msg, ok) { const s = $('st'); s.className = 'st ' + (ok ? 'ok' : 'err'); s.textContent = msg || ''; }
-
-function showAccount(p) {
-  current = { email: p.email || '', password: p.password || '', recovery: p.recovery_email || '' };
-  $('hid').textContent = p.profile_id || '';
-  $('vProfile').textContent = p.profile_id || '—';
-  $('vEmail').textContent = p.email || '—';
-  $('vPass').textContent = p.password || '—';
-  if (p.recovery_email) { $('vRec').textContent = p.recovery_email; $('rRec').style.display = 'flex'; }
-  else { $('rRec').style.display = 'none'; }
+function show(id) {
+  CURRENT = id;
+  document.getElementById("vName").textContent = id.full_name || "—";
+  document.getElementById("vEmail").textContent = id.email || "—";
+  document.getElementById("vUser").textContent = id.username || "—";
+  document.getElementById("vPass").textContent = id.password || "—";
+  document.getElementById("vDob").textContent =
+    (id.dob_month_name || id.dob_month) + " " + id.dob_day + ", " + id.dob_year;
+  document.getElementById("vCountry").textContent = id.country || "—";
 }
 
-function loadAccount() {
-  chrome.storage.local.get(DEFAULTS, (c) => {
-    const id = (c.profileId || '').trim().toUpperCase();
-    $('profileId').value = id;
-    $('serverUrl').value = c.serverUrl || DEFAULTS.serverUrl;
-    $('vaultKey').value = c.vaultKey || '';
-    $('vProfile').textContent = id || '—';
-    $('hid').textContent = id || '';
-    if (!id) { status('No profile detected yet — launch a profile from its PersonaX startup page.', false); $('cfg').open = true; return; }
-    if (!c.vaultKey) { status('Set the vault key once below to see this account.', false); $('cfg').open = true; return; }
-    status('Loading ' + id + '…', true);
-    chrome.runtime.sendMessage({ type: 'GET_PROFILE', profileId: id }, (resp) => {
-      if (!resp) { status('No response from background', false); return; }
-      if (resp.error) { status(resp.error, false); return; }
-      showAccount(resp.profile);
-      status('Ready — press Alt+X on a signup page', true);
-    });
+function copyValue(which) {
+  if (!CURRENT) return "";
+  if (which === "dob") return (CURRENT.dob_month_name || CURRENT.dob_month) + " " + CURRENT.dob_day + ", " + CURRENT.dob_year;
+  return CURRENT[which] || "";
+}
+
+function load() {
+  chrome.runtime.sendMessage({ type: "GET_IDENTITY" }, (resp) => {
+    if (resp && resp.identity) show(resp.identity);
   });
 }
 
-document.querySelectorAll('.cp').forEach((b) => {
-  b.onclick = () => {
-    const v = current[b.getAttribute('data-c')] || '';
-    if (!v) return;
-    navigator.clipboard.writeText(v).then(() => {
-      const t = b.textContent; b.textContent = 'Copied'; b.classList.add('done');
-      setTimeout(() => { b.textContent = t; b.classList.remove('done'); }, 1100);
-    });
-  };
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".cp");
+  if (!btn) return;
+  const val = copyValue(btn.dataset.c);
+  navigator.clipboard.writeText(val).then(() => {
+    const old = btn.textContent;
+    btn.textContent = "Copied"; btn.classList.add("done");
+    setTimeout(() => { btn.textContent = old; btn.classList.remove("done"); }, 1100);
+  });
 });
 
-$('save').onclick = () => {
-  const data = {
-    serverUrl: $('serverUrl').value.trim().replace(/\/+$/, ''),
-    vaultKey: $('vaultKey').value.trim(),
-    profileId: $('profileId').value.trim().toUpperCase()
-  };
-  $('profileId').value = data.profileId;
-  chrome.storage.local.set(data, () => { status('Saved ✓', true); loadAccount(); });
-};
+document.getElementById("fill").addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab && tab.id != null) {
+    chrome.tabs.sendMessage(tab.id, { type: "AUTOFILL_NOW" });
+    const st = document.getElementById("st");
+    st.textContent = "Filling the current page…";
+    setTimeout(() => { st.textContent = ""; }, 1600);
+    window.close();
+  }
+});
 
-loadAccount();
+document.getElementById("regen").addEventListener("click", () => {
+  chrome.runtime.sendMessage({ type: "REGENERATE" }, (resp) => {
+    if (resp && resp.identity) {
+      show(resp.identity);
+      const st = document.getElementById("st");
+      st.textContent = "New identity generated for this profile.";
+      setTimeout(() => { st.textContent = ""; }, 1800);
+    }
+  });
+});
+
+load();

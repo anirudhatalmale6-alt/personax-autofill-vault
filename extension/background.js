@@ -1,46 +1,48 @@
-/* Service worker: holds config, fetches the profile record from the vault,
-   and relays the Alt+X command to the active tab. */
+/* PersonaX Autofill - service worker.
+   Owns the single, stable identity for THIS profile. Because every PersonaX
+   profile is an isolated browser, chrome.storage.local is private to the profile,
+   so each profile automatically gets its own identity on first use with nothing
+   for the user to configure. No server, no vault, no key. */
 
-const DEFAULTS = { serverUrl: 'https://personax.work/outlook', vaultKey: '', profileId: '' };
+importScripts("identity.js");
 
-async function getConfig() {
-  const c = await chrome.storage.local.get(DEFAULTS);
-  return Object.assign({}, DEFAULTS, c);
+const KEY = "px_identity";
+
+// Return the stored identity; generate + persist it the first time only.
+async function getIdentity() {
+  const data = await chrome.storage.local.get(KEY);
+  if (data[KEY] && data[KEY].email) return data[KEY];
+  const id = pxGenerateIdentity();
+  await chrome.storage.local.set({ [KEY]: id });
+  return id;
 }
 
-// Fetch happens here (not in the page) so the vault key never touches page JS
-// and there are no CORS/mixed-content headaches.
-async function fetchProfile(profileId) {
-  const cfg = await getConfig();
-  const id = (profileId || cfg.profileId || '').trim();
-  if (!cfg.serverUrl) return { error: 'Set the vault server URL in the extension popup.' };
-  if (!cfg.vaultKey) return { error: 'Set the vault key in the extension popup.' };
-  if (!id) return { error: 'No profile ID set. Open the popup and set this profile\'s ID.' };
-  try {
-    const r = await fetch(cfg.serverUrl.replace(/\/+$/, '') + '/api/profile/' + encodeURIComponent(id), {
-      headers: { 'x-vault-key': cfg.vaultKey }
-    });
-    if (r.status === 401) return { error: 'Vault key rejected. Check the popup.' };
-    if (r.status === 404) return { error: 'No info stored for profile ' + id + ' yet.' };
-    if (!r.ok) return { error: 'Vault error ' + r.status };
-    const j = await r.json();
-    return { profile: j.profile };
-  } catch (e) {
-    return { error: 'Cannot reach vault at ' + cfg.serverUrl + ' (' + e.message + ')' };
-  }
+async function regenerateIdentity() {
+  const id = pxGenerateIdentity();
+  await chrome.storage.local.set({ [KEY]: id });
+  return id;
 }
 
-// Alt+X keyboard command -> tell the active tab to autofill
+// Make sure an identity exists as soon as the profile launches, so the popup and
+// the first Alt+X both see the same data.
+chrome.runtime.onInstalled.addListener(() => { getIdentity(); });
+chrome.runtime.onStartup.addListener(() => { getIdentity(); });
+
+// Alt+X -> tell the active tab to autofill.
 chrome.commands.onCommand.addListener(async (command) => {
-  if (command !== 'autofill') return;
+  if (command !== "autofill") return;
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab && tab.id != null) chrome.tabs.sendMessage(tab.id, { type: 'AUTOFILL_NOW' });
+  if (tab && tab.id != null) chrome.tabs.sendMessage(tab.id, { type: "AUTOFILL_NOW" });
 });
 
-// Content script asks us for the data (keeps the key out of the page)
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg && msg.type === 'GET_PROFILE') {
-    fetchProfile(msg.profileId).then(sendResponse);
+  if (!msg) return;
+  if (msg.type === "GET_IDENTITY") {
+    getIdentity().then((id) => sendResponse({ identity: id }));
     return true; // async
+  }
+  if (msg.type === "REGENERATE") {
+    regenerateIdentity().then((id) => sendResponse({ identity: id }));
+    return true;
   }
 });
