@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PersonaX Autofill",
-  "version": "2.0.0",
-  "description": "Install and go. Each PersonaX profile gets its own fixed identity and autofills Outlook signup forms. Press Alt+X. No setup, no server.",
+  "version": "2.1.0",
+  "description": "Install and go. Each PersonaX profile gets its own fixed identity. Press Alt+X to fill the Outlook signup form. English forced. No setup, no server.",
   "permissions": ["storage", "activeTab", "tabs", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
@@ -14,6 +14,15 @@
     }
   },
   "content_scripts": [
+    {
+      "matches": [
+        "*://*.live.com/*", "*://*.microsoft.com/*", "*://*.microsoftonline.com/*",
+        "*://*.outlook.com/*", "*://*.office.com/*", "*://*.account.microsoft.com/*"
+      ],
+      "js": ["lang.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    },
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],

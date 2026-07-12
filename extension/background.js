@@ -23,10 +23,22 @@ async function regenerateIdentity() {
   return id;
 }
 
+// Open the Outlook signup page (in English) so the profile lands ready to test
+// with nothing to configure. Won't stack duplicates if one is already open.
+const SIGNUP_URL = "https://signup.live.com/signup?mkt=en-US&lic=1";
+function openSignup() {
+  try {
+    chrome.tabs.query({}, (tabs) => {
+      const has = (tabs || []).some((t) => t.url && t.url.indexOf("signup.live.com") !== -1);
+      if (!has) chrome.tabs.create({ url: SIGNUP_URL });
+    });
+  } catch (e) {}
+}
+
 // Make sure an identity exists as soon as the profile launches, so the popup and
 // the first Alt+X both see the same data.
-chrome.runtime.onInstalled.addListener(() => { getIdentity(); });
-chrome.runtime.onStartup.addListener(() => { getIdentity(); });
+chrome.runtime.onInstalled.addListener(() => { getIdentity(); openSignup(); });
+chrome.runtime.onStartup.addListener(() => { getIdentity(); openSignup(); });
 
 // Alt+X -> tell the active tab to autofill.
 chrome.commands.onCommand.addListener(async (command) => {

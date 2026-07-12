@@ -11,7 +11,9 @@ stores it. That identity **never changes on refresh** or between signup steps; i
 same until you tap *New identity*.
 
 - Create 100 profiles and each one automatically has its own identity. Nothing to configure.
-- On an Outlook signup page it fills **automatically**, or press **Alt+X** any time.
+- The form is left **blank** until you press **Alt+X** — nothing is typed automatically.
+- When a profile starts it opens the Outlook signup page (in English) so it's ready to test.
+- Microsoft pages are **forced to English** (`mkt=en-US`) even behind proxies that would otherwise load Chinese/other languages.
 - The popup shows this profile's identity with copy buttons, plus a *New identity* button.
 
 ## Load it
@@ -21,8 +23,9 @@ PersonaX / Chrome → Extensions → Developer mode → **Load unpacked** → pi
 ## Files (`/extension`)
 - `identity.js` — generates one realistic random identity (single source of truth).
 - `background.js` — service worker; generates the identity once, stores it, serves it. Holds the Alt+X command.
-- `content.js` — fills forms. Robust field matching, plus special handling for Outlook's
+- `content.js` — fills forms **on Alt+X only**. Robust field matching, plus special handling for Outlook's
   Fluent birth-month/day dropdowns and the birth-year input (this is what most autofillers miss).
+- `lang.js` — pins Microsoft signup pages to English before they render.
 - `popup.html` / `popup.js` — shows the profile's identity, copy buttons, *New identity*.
 
 ## Notes

@@ -1,7 +1,8 @@
 /* PersonaX Autofill - content script.
    Fills signup/sign-in forms with THIS profile's stable identity (held by the
    service worker). Same data every time - refreshing the page or moving to the
-   next step never changes it. Press Alt+X, or let it auto-fill on Outlook signup. */
+   next step never changes it. The form is left BLANK until you press Alt+X -
+   nothing is typed automatically. */
 
 (function () {
   const MONTHS = ["January","February","March","April","May","June",
@@ -266,33 +267,12 @@
   }
 
   // ---------- triggers ----------
+  // The form is NEVER filled automatically. It only fills when you press Alt+X
+  // (or use "Autofill now" in the popup, which sends AUTOFILL_NOW).
   // Alt+X from the background command …
   chrome.runtime.onMessage.addListener((msg) => { if (msg && msg.type === "AUTOFILL_NOW") run(true, false); });
   // … and a local Alt+X so it also works inside iframes.
   window.addEventListener("keydown", (e) => {
     if (e.altKey && (e.key === "x" || e.key === "X") && !e.repeat) { e.preventDefault(); run(true, false); }
   }, true);
-
-  // Auto-fill (empty fields only, quietly) on Microsoft / Outlook signup so the
-  // user doesn't have to do anything - it just works when the form appears.
-  const AUTO_HOSTS = /(^|\.)(live|microsoftonline|outlook|office|microsoft)\.com$/i;
-  if (AUTO_HOSTS.test(location.hostname)) {
-    let lastRun = 0;
-    const maybe = () => {
-      const now = Date.now();
-      if (now - lastRun < 800) return;
-      // only if there is something worth filling
-      const hasForm = document.querySelector(
-        "input[type='password'], #usernameEntry, input[name='New email'], #BirthMonthDropdown, " +
-        "#firstNameInput, #lastNameInput, input[type='email'], input[name='MemberName']"
-      );
-      if (!hasForm) return;
-      lastRun = now;
-      run(false, true);
-    };
-    if (document.readyState === "complete" || document.readyState === "interactive") setTimeout(maybe, 400);
-    window.addEventListener("load", () => setTimeout(maybe, 400));
-    const obs = new MutationObserver(() => maybe());
-    obs.observe(document.documentElement, { childList: true, subtree: true });
-  }
 })();
