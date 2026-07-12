@@ -9,13 +9,46 @@
   function detectProfileId() {
     try {
       // 1) a global some antidetect browsers inject
-      if (window.__PERSONAX_PROFILE_ID__) return String(window.__PERSONAX_PROFILE_ID__);
-      // 2) ?profile=AAA0001 in the url (handy for testing)
-      const q = new URLSearchParams(location.search).get('profile');
-      if (q) return q;
+      if (window.__PERSONAX_PROFILE_ID__) return String(window.__PERSONAX_PROFILE_ID__).trim().toUpperCase();
+      // 2) ?profile=AAA0001 in the url (the PersonaX startup page carries this)
+      const q = new URLSearchParams(location.search).get('profile') || new URLSearchParams(location.search).get('id');
+      if (q) return q.trim().toUpperCase();
     } catch (e) {}
     return ''; // fall back to the stored profileId in background
   }
+
+  // When a page tells us which profile this is (the startup page uses ?profile=AAA0002),
+  // remember it. From then on Alt+X works on every later page with no popup setup at all.
+  (function captureProfileFromPage() {
+    try {
+      const id = detectProfileId();
+      if (id && chrome.storage && chrome.storage.local) chrome.storage.local.set({ profileId: id });
+    } catch (e) {}
+  })();
+
+  // Secure bridge for the PersonaX startup page only: it may ask us to show this
+  // profile's stored email/password. The vault key stays in the background worker —
+  // it never touches the page. Restricted to the vault's own origin.
+  try {
+    const TRUSTED = ['https://personax.work', 'http://127.0.0.1:4600', 'http://localhost:4600'];
+    if (TRUSTED.indexOf(location.origin) !== -1) {
+      const reply = (id) => {
+        chrome.runtime.sendMessage({ type: 'GET_PROFILE', profileId: id }, (resp) => {
+          window.postMessage({ type: 'PX_PROFILE_RESULT', resp: resp || { error: 'no response' } }, location.origin);
+        });
+      };
+      // answer explicit requests …
+      window.addEventListener('message', (e) => {
+        if (e.source !== window || e.origin !== location.origin) return;
+        const m = e.data;
+        if (!m || m.type !== 'PX_REQUEST_PROFILE') return;
+        reply((m.profileId && String(m.profileId).trim().toUpperCase()) || detectProfileId());
+      });
+      // … and push proactively on the startup page so there's no race if our
+      // listener wasn't ready when the page first asked.
+      if (window.top === window) { const id = detectProfileId(); if (id) reply(id); }
+    }
+  } catch (e) {}
 
   // ---- field matching ----
   // Score how well an input matches a logical field, using every hint the page gives.

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PersonaX</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%234f8cff'/%3E%3Ctext x='32' y='44' font-size='34' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'%3EPX%3C/text%3E%3C/svg%3E">
+<style>
+  :root{ --bg:#0b1020; --card:#131a2a; --line:#26304a; --ink:#e7ecf6; --muted:#8ea0c0; --accent:#4f8cff; }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(900px 500px at 80% -10%, rgba(79,140,255,.18), transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, rgba(47,209,138,.12), transparent 60%),
+      var(--bg);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .card{
+    width:100%; max-width:460px; background:linear-gradient(180deg,#151d30,#111829);
+    border:1px solid var(--line); border-radius:20px; padding:30px 30px 26px;
+    box-shadow:0 24px 70px rgba(0,0,0,.45);
+  }
+  .brand{ display:flex; align-items:center; gap:13px; }
+  .logo{ width:52px; height:52px; border-radius:15px; flex:0 0 auto;
+    background:linear-gradient(145deg,#5f9bff,#3f6fe0); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 22px rgba(79,140,255,.4); }
+  .logo svg{ width:32px; height:32px; }
+  .brand h1{ margin:0; font-size:21px; letter-spacing:.02em; }
+  .brand h1 b{ color:var(--accent); }
+  .brand p{ margin:2px 0 0; font-size:12px; color:var(--muted); }
+
+  .pidbox{ margin:24px 0 6px; text-align:center; padding:22px 16px;
+    background:#0e1526; border:1px solid var(--line); border-radius:16px; }
+  .pidbox .lbl{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+  .pid{ margin-top:6px; font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:800;
+    font-size:40px; letter-spacing:.06em; color:#fff; }
+  .pid.none{ font-size:22px; color:#ff8290; letter-spacing:0; }
+
+  .creds{ margin-top:16px; border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  .row{ display:flex; align-items:center; gap:10px; padding:12px 14px; border-top:1px solid var(--line); }
+  .row:first-child{ border-top:0; }
+  .row .k{ width:78px; flex:0 0 auto; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+  .row .v{ flex:1; min-width:0; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:14px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .copy{ flex:0 0 auto; cursor:pointer; border:1px solid var(--line); background:#1a2338; color:var(--muted);
+    border-radius:8px; padding:5px 9px; font-size:11px; }
+  .copy:hover{ color:#fff; border-color:var(--accent); }
+  .copy.done{ color:#2fd18a; border-color:#1f6b4a; }
+
+  .status{ margin-top:18px; display:flex; align-items:center; gap:9px; font-size:13px;
+    padding:11px 14px; border-radius:12px; background:#0e1526; border:1px solid var(--line); color:var(--muted); }
+  .dot{ width:9px; height:9px; border-radius:50%; background:#5a6a8c; flex:0 0 auto; }
+  .status.armed{ color:#bfe6cf; } .status.armed .dot{ background:#2fd18a; box-shadow:0 0 0 4px rgba(47,209,138,.18); }
+  .status.warn{ color:#ffcf9a; } .status.warn .dot{ background:#f0a04b; }
+  kbd{ background:#0e1526; border:1px solid #33406a; border-radius:5px; padding:1px 6px;
+    font-family:ui-monospace,monospace; font-size:12px; color:var(--ink); }
+  .foot{ margin-top:16px; font-size:11.5px; color:#6d7e9e; line-height:1.6; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="22" r="12" fill="#fff"/>
+          <path d="M12 54c0-11 9-18 20-18s20 7 20 18" fill="#fff"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Persona<b>X</b></h1>
+        <p>Anti-Detect Browser &middot; Autofill ready</p>
+      </div>
+    </div>
+
+    <div class="pidbox">
+      <div class="lbl">Active Profile</div>
+      <div id="pid" class="pid none">not set</div>
+    </div>
+
+    <div class="creds" id="creds" style="display:none">
+      <div class="row"><div class="k">Email</div><div class="v" id="email">—</div><button class="copy" data-c="email">Copy</button></div>
+      <div class="row"><div class="k">Password</div><div class="v" id="password">—</div><button class="copy" data-c="password">Copy</button></div>
+      <div class="row" id="recRow" style="display:none"><div class="k">Recovery</div><div class="v" id="recovery">—</div><button class="copy" data-c="recovery">Copy</button></div>
+    </div>
+
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Checking autofill extension&hellip;</span></div>
+
+    <div class="foot">On any signup or sign-in page, press <kbd>Alt</kbd>+<kbd>X</kbd> to autofill this profile automatically.</div>
+  </div>
+
+<script>
+(function () {
+  var ORIGIN = location.origin;
+  var params = new URLSearchParams(location.search);
+  var pid = (params.get('profile') || params.get('id') || '').trim().toUpperCase();
+
+  var elPid = document.getElementById('pid');
+  var elStatus = document.getElementById('status');
+  var elStatusText = document.getElementById('statusText');
+  var elCreds = document.getElementById('creds');
+
+  if (pid) { elPid.textContent = pid; elPid.classList.remove('none'); }
+  else { elPid.textContent = 'not set'; elPid.classList.add('none'); }
+
+  var current = {};
+  function setStatus(cls, text){ elStatus.className = 'status ' + cls; elStatusText.innerHTML = text; }
+
+  // copy buttons
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var v = current[b.getAttribute('data-c')] || '';
+      if (!v) return;
+      navigator.clipboard.writeText(v).then(function () {
+        var t = b.textContent; b.textContent = 'Copied'; b.classList.add('done');
+        setTimeout(function () { b.textContent = t; b.classList.remove('done'); }, 1200);
+      });
+    });
+  });
+
+  // Ask the extension (via its content script on this same origin) for this
+  // profile's stored data. The vault key never leaves the extension background.
+  var answered = false;
+  window.addEventListener('message', function (e) {
+    if (e.source !== window || e.origin !== ORIGIN) return;
+    var m = e.data;
+    if (!m || m.type !== 'PX_PROFILE_RESULT') return;
+    answered = true;
+    var resp = m.resp || {};
+    if (resp.error || !resp.profile) {
+      setStatus('warn', (resp.error || 'Extension not configured') + '');
+      return;
+    }
+    var p = resp.profile;
+    current = { email: p.email || '', password: p.password || '', recovery: p.recovery_email || '' };
+    document.getElementById('email').textContent = p.email || '—';
+    document.getElementById('password').textContent = p.password || '—';
+    if (p.recovery_email) { document.getElementById('recovery').textContent = p.recovery_email; document.getElementById('recRow').style.display = 'flex'; }
+    elCreds.style.display = 'block';
+    setStatus('armed', 'Autofill armed for <b>' + (p.profile_id || pid) + '</b> &mdash; press <kbd>Alt</kbd>+<kbd>X</kbd> on a signup page');
+  });
+
+  // request; if nothing answers, the extension isn't installed/active here
+  window.postMessage({ type: 'PX_REQUEST_PROFILE', profileId: pid }, ORIGIN);
+  setTimeout(function () {
+    if (!answered) setStatus('warn', 'Install the PersonaX Autofill extension, then set the vault key once in its popup.');
+  }, 1500);
+})();
+</script>
+</body>
+</html>

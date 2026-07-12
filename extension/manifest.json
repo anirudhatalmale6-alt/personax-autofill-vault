@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PersonaX Autofill (Alt+X)",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Press Alt+X to autofill signup/signin forms with this PersonaX profile's stored account info.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": ["<all_urls>"],

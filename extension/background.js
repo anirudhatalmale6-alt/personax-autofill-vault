@@ -1,7 +1,7 @@
 /* Service worker: holds config, fetches the profile record from the vault,
    and relays the Alt+X command to the active tab. */
 
-const DEFAULTS = { serverUrl: 'http://127.0.0.1:4600', vaultKey: '', profileId: '' };
+const DEFAULTS = { serverUrl: 'https://personax.work/outlook', vaultKey: '', profileId: '' };
 
 async function getConfig() {
   const c = await chrome.storage.local.get(DEFAULTS);
