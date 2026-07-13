@@ -141,11 +141,15 @@ function genPassword() {
   return pw + pick(D) + pick(S);
 }
 
+// Gmail-style address with TWO dots, e.g. ching.markjohn1524.5@gmail.com
+// The brand tag, the dot before the trailing number and that extra number all
+// widen the space so we rarely repeat an address (and bulk-create additionally
+// checks the DB and re-rolls if the address already exists).
+const EMAIL_PREFIX = 'ching';
 function genEmail(first, last) {
   const a = first.replace(/[^A-Za-z]/g, '').toLowerCase();
   const b = last.replace(/[^A-Za-z]/g, '').toLowerCase();
-  const sep = pick(['', '.', '_']);
-  return `${a}${sep}${b}${randInt(10, 9999)}@outlook.com`;
+  return `${EMAIL_PREFIX}.${a}${b}${randInt(1000, 9999)}.${randInt(1, 99)}@gmail.com`;
 }
 
 function parseBaseId(base) {
@@ -166,6 +170,7 @@ app.post('/api/bulk-create', (req, res) => {
 
   const created = [], skipped = [];
   const exists = db.prepare('SELECT 1 FROM profiles WHERE profile_id = ?');
+  const emailExists = db.prepare('SELECT 1 FROM profiles WHERE email = ?');
   const tx = db.transaction(() => {
     // Produce `count` NEW profiles, walking forward past any IDs that already exist.
     let n = parsed.num;
@@ -175,11 +180,14 @@ app.post('/api/bulk-create', (req, res) => {
       const id = fmt(n);
       if (exists.get(id)) { skipped.push(id); continue; }
       const first = pick(FIRST_NAMES), last = pick(LAST_NAMES);
+      // Re-roll if this address is already in the vault so we never hand back a duplicate.
+      let email = genEmail(first, last);
+      for (let tries = 0; tries < 12 && emailExists.get(email); tries++) email = genEmail(first, last);
       const rec = {
         profile_id: id,
         first_name: first,
         last_name: last,
-        email: genEmail(first, last),
+        email: email,
         password: genPassword(),
         recovery_email: '',        // left blank on purpose
         phone: '',                 // left blank on purpose
